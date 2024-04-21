@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        const cards = [
+            "01-rider.png",
+            "02-clover.png",
+            "03-ship.png",
+            "04-house.png",
+            "05-tree.png",
+            "06-clouds.png",
+            "07-snake.png",
+            "08-coffin.png",
+            "09-bouquet.png",
+            "10-scythe.png",
+            "11-whip.png",
+            "12-birds.png",
+            "13-child.png",
+            "14-fox.png",
+            "15-bear.png",
+            "16-stars.png",
+            "17-stork.png",
+            "18-dog.png",
+            "19-tower.png",
+            "20-garden.png",
+            "21-mountain.png",
+            "22-crossroads.png",
+            "23-mice.png",
+            "24-heart.png",
+            "25-ring.png",
+            "26-book.png",
+            "27-letter.png",
+            "28-gentleman.png",
+            "29-lady.png",
+            "30-lily.png",
+            "31-sun.png",
+            "32-moon.png",
+            "33-key.png",
+            "34-fish.png",
+            "35-anchor.png",
+            "36-cross.png"
+        ]
+
+        function pickCard() {
+            const randomIndex = Math.floor(Math.random() * cards.length);
+            let image = document.getElementById("image");
+            let card = cards[randomIndex];
+            image.src = `/static/lenormand/${card}`;
+            let question = document.getElementById("id_question");
+            let content = `我抽到了一張${card.slice(3, -4)}，我想問`
+            question.value = content;
+        }
+    </script>
+</head>
+<body>
+<img id="image" src="https://kennedy777.github.io/TarotReading/img/backCard.png" height="300px">
+<button onclick="pickCard()">pick a card</button>
+<form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Ask">
+</form>
+</body>
+</html>

@@ -1,3 +1,13 @@
 from django.contrib import admin
 
-# Register your models here.
+from lenormand.models import Ask
+
+
+@admin.register(Ask)
+class AskAdmin(admin.ModelAdmin):
+    list_display = [
+        'name',
+        'question',
+        'answer',
+        'created_at',
+    ]
