@@ -76,6 +76,8 @@
 import os
 import sys
 
+from dotenv import load_dotenv
+
 # assuming your django settings file is at '/home/weihan/mysite/mysite/settings.py'
 # and your manage.py is is at '/home/weihan/mysite/manage.py'
 path = '/home/weihan/pythonanywhere'
@@ -83,6 +85,7 @@ if path not in sys.path:
    sys.path.append(path)
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'pythonanywhere.settings'
+load_dotenv(os.path.join(path, '.env'))
 
 # then:
 from django.core.wsgi import get_wsgi_application

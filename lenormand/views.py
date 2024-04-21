@@ -6,7 +6,6 @@ from openai import OpenAI
 
 from .models import Ask
 
-key = os.environ.get('OPENAI_KEY')
 LENORMAND_CARDS = [
     "Rider", "Clover", "Ship", "House", "Tree", "Clouds", "Snake",
     "Coffin", "Bouquet", "Scythe", "Whip", "Birds", "Child", "Fox",
@@ -33,9 +32,7 @@ class AskCreateView(CreateView):
 
 
 def get_answer(question: str) -> str:
-    client = OpenAI(
-        api_key=key,
-    )
+    client = OpenAI()
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
