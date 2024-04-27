@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+        }
+
+        .deck {
+            position: relative;
+            margin: 0 auto;
+            height: 100%;
+            background-color: gray;
+            text-align: center;
+        }
+
+        .card {
+            position: absolute;
+            background-color: black;
+            height: 100px;
+            width: 50px;
+            left: 50%;
+            border-width: 2px;
+            border-color: red;
+            border-style: solid;
+        }
+        .card:hover {
+            top: 10vh;
+            /*transform: translateY(-50vh);*/
+        }
+
+        .dot {
+            position: absolute;
+            height: 25px;
+            width: 25px;
+            background-color: blue;
+            border-radius: 50%;
+            display: inline-block;
+            /*transform: translateY(-100vh) translateX(50vw);*/
+        }
+    </style>
+</head>
+<body>
+<div class="deck" id="deck">
+    <span class="dot" id="dot"></span>
+</div>
+
+<script>
+    let deck = document.getElementById("deck");
+    const w = deck.offsetWidth;
+    const h = deck.offsetHeight;
+    console.log(w);
+    console.log(h);
+    let r = (h / 2) + (w ** 2 / 8 / h);
+    let y = Math.round(r * 0.9);
+    console.log(r);
+    let rad = Math.asin(w / 2 / r) * 2;
+    console.log(rad);
+    let start = -rad / 2;
+
+    let cardNumber = 100;
+    let radNumber = cardNumber + 1;
+    let shiftRad = rad / radNumber;
+    for (let i = 0; i < cardNumber; i++) {
+        let card = document.createElement("div");
+        card.classList.add("card");
+        let rotate = shiftRad * (i + 1) - rad / 2;
+        card.style.transform = `translateX(-50%) translateY(${y}px) rotate(${rotate}rad) translateY(${-y}px) rotate(${-rotate}rad)`;
+        deck.appendChild(card);
+    }
+    let dot = document.getElementById("dot");
+    dot.style.width = `${2 * r}px`;
+    dot.style.height = `${2 * r}px`;
+    dot.style.transform = "translateX(-50%)";
+</script>
+</body>
+</html>
