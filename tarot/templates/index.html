@@ -27,6 +27,7 @@
             border-color: red;
             border-style: solid;
         }
+
         .card:hover {
             top: 10vh;
             /*transform: translateY(-50vh);*/
@@ -45,7 +46,7 @@
 </head>
 <body>
 <div class="deck" id="deck">
-    <span class="dot" id="dot"></span>
+    <!--    <span class="dot" id="dot"></span>-->
 </div>
 
 <script>
@@ -69,12 +70,25 @@
         card.classList.add("card");
         let rotate = shiftRad * (i + 1) - rad / 2;
         card.style.transform = `translateX(-50%) translateY(${y}px) rotate(${rotate}rad) translateY(${-y}px) rotate(${-rotate}rad)`;
+
+        card.addEventListener('touchstart', function (event) {
+            card.style.backgroundColor = 'blue';
+        });
+
+        card.addEventListener('touchmove', function (event) {
+            card.style.backgroundColor = 'green';
+        });
+
+        card.addEventListener('touchend', function (event) {
+            card.style.backgroundColor = 'red';
+        });
+
         deck.appendChild(card);
     }
-    let dot = document.getElementById("dot");
-    dot.style.width = `${2 * r}px`;
-    dot.style.height = `${2 * r}px`;
-    dot.style.transform = "translateX(-50%)";
+    // let dot = document.getElementById("dot");
+    // dot.style.width = `${2 * r}px`;
+    // dot.style.height = `${2 * r}px`;
+    // dot.style.transform = "translateX(-50%)";
 </script>
 </body>
 </html>
