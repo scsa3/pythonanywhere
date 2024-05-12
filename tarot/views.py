@@ -5,6 +5,7 @@ import uuid
 from django.shortcuts import render, redirect
 from django.templatetags.static import static
 
+from lenormand.views import get_answer
 from tarot.apps import TarotConfig
 from tarot.forms import TarotForm, QuestionForm
 
@@ -96,8 +97,6 @@ image_map = {
 
 
 def question_view(request):
-    print(QuestionForm())
-    print()
     name_list = request.POST.get('name')
     if name_list:
         context = {
@@ -127,11 +126,10 @@ def tarot(request):
 def answer_view(request):
     if request.method == "POST":
         form = TarotForm(request.POST)
-        print(form.is_valid())
         if form.is_valid():
             name = form.cleaned_data["name"]
             question = form.cleaned_data["question"]
-            answer = 'XXXXXX'
+            answer = get_answer(question)
             context = {
                 'name': name,
                 'question': question,
