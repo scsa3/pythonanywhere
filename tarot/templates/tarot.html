@@ -22,11 +22,11 @@
             <img src="{{ card.src }}" class="{{ card.class }}" alt="{{ card.alt }}">
         </div>
     {% endfor %}
-<form action="{% url 'answer' %}" method="post">
-    {% csrf_token %}
-    {{ form }}
-    <input type="submit" value="Read tarot" id="submit">
-</form>
+    <form action="{% url 'answer' %}" method="post" id="id_form">
+        {% csrf_token %}
+        {{ form }}
+        <input type="submit" value="Read tarot" id="id_submit">
+    </form>
 </div>
 </body>
 </html>
