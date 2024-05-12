@@ -149,16 +149,9 @@ function handleTouchEnd(event) {
     }
     let spreadCards = document.getElementsByClassName("on-spread");
     if (spreadCards.length >= 3) {
-        createButton();
     }
 }
 
-function createButton() {
-    let button = document.createElement("button");
-    button.innerText = "Read tarot";
-    button.addEventListener("click", clickButton);
-    deck.appendChild(button);
-}
 
 function clickButton(event) {
     let cards = document.getElementsByClassName("on-spread");
