@@ -1,6 +1,7 @@
 body, html {
     height: 100%;
     margin: 0;
+    overflow: hidden;
 }
 
 .deck {
@@ -105,8 +106,16 @@ body, html {
 
 button {
     position: absolute;
-    z-index: 100;
+    z-index: 10;
     bottom: 25%;
     height: auto;
     transform: translateY(-25%);
+}
+
+form > input[type=submit] {
+    position: absolute;
+    height: auto;
+    z-index: 100;
+    transform: translateX(-50%) translateY(50%);
+    bottom: 25%;
 }
