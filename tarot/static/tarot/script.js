@@ -17,6 +17,7 @@ main();
 
 
 function main() {
+    document.getElementById("id_submit").addEventListener("click", clickButton);
     // createCards();
     handleResize();
     // window.addEventListener("resize", handleResize);
@@ -154,21 +155,19 @@ function handleTouchEnd(event) {
 
 
 function clickButton(event) {
-    let cards = document.getElementsByClassName("on-spread");
-    for (let card of cards) {
-        let img = card.querySelector("img");
-        console.log(img);
-        console.log(img.src);
-        let isNegative;
-        if (img.classList.contains("negative")) {
-            isNegative = true;
-        }else {
-            isNegative = false;
-        }
-        let name = img.src.split("/");
-        name = name[name.length - 1].split(".")[0];
-        console.log(name);
-    }
+    event.preventDefault();
+    let questionPrefix = "我抽到";
+    let past = document.querySelector(".past > img");
+    questionPrefix += `過去${past.alt}`;
+    let present = document.querySelector(".present > img");
+    questionPrefix += `現在${present.alt}`;
+    let future = document.querySelector(".future > img");
+    questionPrefix += `未來${future.alt}。我想問`;
+    let question = document.getElementById("id_question")
+    question.value = `${questionPrefix}${question.value}`;
+    console.log(question.value);
+    console.log(document.getElementById("id_form"));
+    document.getElementById("id_form").submit();
 }
 
 function isTouchOnSpread(event) {
