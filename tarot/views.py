@@ -1,12 +1,12 @@
+import datetime
 import random
 import uuid
-from pathlib import Path
 
-from django.conf import settings
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.templatetags.static import static
 
 from tarot.apps import TarotConfig
+from tarot.forms import TarotForm, QuestionForm
 
 position_map = {
     'positive': '正位',
@@ -95,14 +95,51 @@ image_map = {
 }
 
 
-def index(request):
-    cards = get_cards()
-    random.shuffle(cards)
-    context = {
-        'cards': cards,
-        'css_version': str(uuid.uuid4()),
-    }
-    return render(request, 'index.html', context)
+def question_view(request):
+    print(QuestionForm())
+    print()
+    name_list = request.POST.get('name')
+    if name_list:
+        context = {
+            'name': name_list[0],
+        }
+    else:
+        context = {}
+    return render(request, 'question.html', context)
+
+
+def tarot(request):
+    if request.method == 'POST':
+        form = QuestionForm(request.POST)
+        if form.is_valid():
+            cards = get_cards()
+            random.shuffle(cards)
+            tarot_form = TarotForm(request.POST)
+            context = {
+                'cards': cards,
+                'css_version': str(uuid.uuid4()),
+                'form': tarot_form,
+            }
+            return render(request, 'tarot.html', context)
+    return redirect('question')
+
+
+def answer_view(request):
+    if request.method == "POST":
+        form = TarotForm(request.POST)
+        print(form.is_valid())
+        if form.is_valid():
+            name = form.cleaned_data["name"]
+            question = form.cleaned_data["question"]
+            answer = 'XXXXXX'
+            context = {
+                'name': name,
+                'question': question,
+                'answer': answer,
+                'datetime': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            return render(request, 'answer.html', context)
+    return redirect('question')
 
 
 def get_cards():
