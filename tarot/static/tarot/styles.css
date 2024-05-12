@@ -106,7 +106,7 @@ body, html {
 button {
     position: absolute;
     z-index: 100;
-    top: 37.5vh;
+    bottom: 25%;
     height: auto;
     transform: translateY(-25%);
 }
