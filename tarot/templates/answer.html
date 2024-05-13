@@ -11,21 +11,25 @@
 </head>
 <body>
 <div class="container">
-    <h6>Name:</h6>
-    <p id="id_name">{{ name }}</p>
-    <h6>Question:</h6>
-    <p>{{ question }}</p>
-    <h6>Answer:</h6>
-    <p>{{ answer }}</p>
-    <h6>Datetime:</h6>
-    <p>{{ datetime }}</p>
+    <div class="mb-3 mt-3">
+        <h6>Name:</h6>
+        <p id="id_name">{{ name }}</p>
+        <h6>Question:</h6>
+        <p>{{ question }}</p>
+        <h6>Answer:</h6>
+        <p>{{ answer }}</p>
+        <h6>Datetime:</h6>
+        <p>{{ datetime }}</p>
+    </div>
 </div>
 <div class="container">
-    <form action="{% url 'question' %}" method="post">
-        {% csrf_token %}
-        <input type="hidden" class="form-control" value="{{ name }}" name="name" maxlength="100">
-        <button type="submit" class="btn btn-primary">Ask other question</button>
-    </form>
+    <div class="mb-3 mt-3">
+        <form action="{% url 'question' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" class="form-control" value="{{ name }}" name="name" maxlength="100">
+            <button type="submit" class="btn btn-primary">Ask other question</button>
+        </form>
+    </div>
 </div>
 </body>
 </html>
