@@ -20,7 +20,7 @@ function main() {
     document.getElementById("id_submit").addEventListener("click", clickButton);
     // createCards();
     handleResize();
-    // window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize);
     document.getElementById("cards-deck").addEventListener('touchmove', handleTouchMove);
     document.getElementById("cards-deck").addEventListener('touchend', handleTouchEnd);
 }
@@ -155,6 +155,7 @@ function handleTouchEnd(event) {
 
 
 function clickButton(event) {
+    document.getElementById("loadingOverlay").style.display = "flex";
     event.preventDefault();
     let questionPrefix = "我抽到";
     let past = document.querySelector(".past > img");
