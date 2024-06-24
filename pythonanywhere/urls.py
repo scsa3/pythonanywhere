@@ -23,4 +23,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('lenormand/', include('lenormand.urls')),
     path('tarot/', include('tarot.urls')),
+    path('', views.index),
 ]
