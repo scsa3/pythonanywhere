@@ -2,10 +2,12 @@ import datetime
 import random
 import uuid
 
+import openai
 from django.shortcuts import render, redirect
 from django.templatetags.static import static
+from markdown import markdown
+from openai import OpenAI
 
-from lenormand.views import get_answer
 from tarot.apps import TarotConfig
 from tarot.forms import TarotForm, QuestionForm
 
@@ -154,3 +156,22 @@ def get_cards():
         }
         cards.append(card)
     return cards
+
+
+def get_answer(question: str) -> str:
+    # client = OpenAI()
+    # completion = client.chat.completions.create(
+    completion = openai.chat.completions.create(
+        # model="gpt-3.5-turbo",
+        model="gpt-4o",
+        messages=[
+            # {"role": "system", "content": "你是一個塔羅牌占卜師，使用者會抽三張牌分別代表過去現在與未來的牌陣，請你回答使用者的問題"},
+            {"role": "system",
+             "content": "我要抽三張塔羅牌，分別對應過去、現在、未來的牌陣，請你用專業的塔羅牌大師會回答的內容來回答我的問題，請以過去、現在、未來做為三大段回答，每一段內容只能以200字綜合敘述牌義、牌面主要色彩分析、時間長短的影響、牌上元素的內容，最後給予摘要結論跟建議，使用繁體中文。"},
+            {"role": "user", "content": question}
+        ]
+    )
+    answer = completion.choices[0].message.content
+    html = markdown(answer)
+
+    return html
