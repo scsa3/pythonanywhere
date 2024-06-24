@@ -51,8 +51,7 @@ body, html {
 
 .chosen {
     background-color: green;
-    /*transform: rotateY(180deg) !important;;*/
-    transform: translateY(-50%) rotateY(180deg) translateX(50%);
+    transform: translateY(-50%) translateX(-50%);
 }
 
 .past {
