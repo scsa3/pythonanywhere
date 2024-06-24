@@ -107,7 +107,7 @@ def question_view(request):
     return render(request, 'question.html', context)
 
 
-def tarot(request):
+def pick(request):
     if request.method == 'POST':
         form = QuestionForm(request.POST)
         if form.is_valid():
