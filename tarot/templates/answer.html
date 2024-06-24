@@ -24,7 +24,7 @@
 </div>
 <div class="container">
     <div class="mb-3 mt-3">
-        <form action="{% url 'question' %}" method="post">
+        <form action="{% url 'tarot:index' %}" method="post">
             {% csrf_token %}
             <input type="hidden" class="form-control" value="{{ name }}" name="name" maxlength="100">
             <button type="submit" class="btn btn-primary">Ask other question</button>
