@@ -122,7 +122,7 @@ def pick(request):
                 'form': tarot_form,
             }
             return render(request, 'tarot.html', context)
-    return redirect('question')
+    return redirect('tarot:index')
 
 
 def answer_view(request):
