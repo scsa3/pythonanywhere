@@ -139,7 +139,7 @@ def answer_view(request):
                 'datetime': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
             return render(request, 'answer.html', context)
-    return redirect('question')
+    return redirect('tarot:question')
 
 
 def get_cards():
