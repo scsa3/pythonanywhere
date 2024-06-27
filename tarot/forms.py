@@ -7,5 +7,5 @@ class QuestionForm(forms.Form):
 
 
 class TarotForm(forms.Form):
-    name = forms.CharField(label='name', max_length=100, widget=forms.HiddenInput())
+    name = forms.CharField(label='name', max_length=100, widget=forms.HiddenInput(), required=False)
     question = forms.CharField(label='question', max_length=1000, widget=forms.HiddenInput())
