@@ -2,7 +2,7 @@ from django import forms
 
 
 class QuestionForm(forms.Form):
-    name = forms.CharField(label='name', max_length=100)
+    name = forms.CharField(label='name', max_length=100, required=False)
     question = forms.CharField(label='question', max_length=1000, widget=forms.Textarea())
 
 
