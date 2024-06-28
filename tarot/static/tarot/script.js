@@ -21,8 +21,9 @@ function main() {
     // createCards();
     handleResize();
     window.addEventListener("resize", handleResize);
+    document.getElementById("cards-deck").addEventListener('touchstart', handleTouchMove);
     document.getElementById("cards-deck").addEventListener('touchmove', handleTouchMove);
-    document.getElementById("cards-deck").addEventListener('touchend', handleTouchEnd);
+    // document.getElementById("cards-deck").addEventListener('touchend', handleTouchEnd);
 }
 
 function createCards() {
@@ -113,27 +114,39 @@ function clickCard(event) {
 }
 
 function handleTouchMove(event) {
-    event.preventDefault();
-    let touchX = event.touches[0].clientX;
+
     let cards = document.getElementsByClassName("card");
     cards = Array.from(cards);
-    cards = cards.reverse();
+    // cards = cards.reverse();
     let count = 0;
+    let isAddChosen = true;
     for (let card of cards) {
         let rect = card.getBoundingClientRect();
-        if (touchX >= rect.left && touchX <= rect.right) {
-            if (!card.classList.contains("on-spread")) {
-                if (count < 1) {
-                    card.classList.add("chosen");
-                } else {
-                    card.classList.remove("chosen");
-                }
-                count += 1;
-            }
+
+        if (
+            isTouchOnCard(rect, event) &&
+            !card.classList.contains("on-spread") &&
+            isAddChosen
+        ) {
+            event.preventDefault();
+            card.classList.add("chosen");
+            isAddChosen = false;
         } else {
             card.classList.remove("chosen");
         }
     }
+
+}
+
+function isTouchOnCard(rect, event) {
+    let touchX = event.touches[0].clientX;
+    let touchY = event.touches[0].clientY;
+    return (
+        touchX >= rect.left
+        && touchX <= rect.left + rect.width / 2
+        && touchY >= rect.top
+        && touchY < rect.bottom
+    )
 }
 
 function handleTouchEnd(event) {
