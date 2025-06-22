@@ -98,7 +98,7 @@ image_map = {
 }
 
 
-def question_view(request):
+def index_view(request):
     name_list = request.POST.get('name')
     if name_list:
         context = {
@@ -106,7 +106,7 @@ def question_view(request):
         }
     else:
         context = {}
-    return render(request, 'question.html', context)
+    return render(request, 'tarot/index.html', context)
 
 
 def pick(request):
