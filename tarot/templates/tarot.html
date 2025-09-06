@@ -6,12 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   {% load static %}
   <link rel="shortcut icon" type="image/png" href="{% static 'tarot/tarot-card.png' %}">
-  <!-- 避免快取 -->
   <link rel="stylesheet" href="{% static 'tarot/styles.css' %}?ver={{ css_version }}">
   <script src="{% static 'tarot/script.js' %}?ver={{ css_version }}" defer></script>
 </head>
 <body>
-<div id="loadingOverlay" class="loading-overlay">Loading...</div>
+
+<!-- Loading：占卜中的動態（已移除陰影元素） -->
+<div id="loadingOverlay" class="loading-overlay" aria-live="polite" aria-busy="true">
+  <div class="loading-box">
+    <div class="loading-orbit-wrap">
+      <div class="loading-orbit">
+        <div class="loading-card"></div>
+      </div>
+    </div>
+    <div id="loadingText" class="loading-text">洗牌中…</div>
+  </div>
+</div>
 
 <div class="deck top" id="spread-deck">
   <div class="spread" id="past" onclick="clickSpread(this)"></div>

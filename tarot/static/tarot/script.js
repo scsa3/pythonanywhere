@@ -8,32 +8,28 @@ const details = createCardDetails();
 // === New interaction state (click-to-place + drag-drop) ===
 let selectedSlotId = null;
 let draggingCard = null;
-let dragOffsetX = 0;       // 保留（未使用也無妨）
+let dragOffsetX = 0;
 let dragOffsetY = 0;
-let dragStartClientX = 0;  // 記錄指標起點
+let dragStartClientX = 0;
 let dragStartClientY = 0;
 
 // Undo/Reset history
-const historyStack = []; // entries: { card, fromId, toId }
+const historyStack = [];
 
 // Place a card into a specific slot id ("past" | "present" | "future")
 function placeCard(card, slotId, pushHistory = true) {
   if (!card || !slotId) return;
 
-  // 原本在哪一槽
   let fromId = null;
   if (card.classList.contains("on-spread")) {
     for (const sid of spreadIds) if (card.classList.contains(sid)) { fromId = sid; break; }
   }
 
-  // 設定新槽
   card.classList.remove("chosen","past","present","future");
   card.classList.add("on-spread", slotId);
 
-  // 紀錄歷史
   if (pushHistory) historyStack.push({ card, fromId, toId: slotId });
 
-  // 若有預選槽位就清掉
   if (selectedSlotId) {
     selectedSlotId = null;
     const spreads = document.getElementsByClassName("spread");
@@ -225,8 +221,26 @@ function isTouchOnCard(rect, e) { /* 舊流程保留相容 */ }
 function handleTouchEnd(e) { /* 舊流程保留相容 */ }
 
 function clickButton(event) {
-  document.getElementById("loadingOverlay").style.display = "flex";
+  const overlay = document.getElementById("loadingOverlay");
+  overlay.style.display = "flex";
   event.preventDefault();
+
+  const el = document.getElementById("loadingText");
+  const msgs = [
+    "集中你的念頭…",
+    "與牌面對齊能量…",
+    "解讀過去的線索…",
+    "解析當下的脈絡…",
+    "推演未來的走向…"
+  ];
+  let i = 0;
+  el.textContent = msgs[i];
+  if (window.loadingMsgTimer) clearInterval(window.loadingMsgTimer);
+  window.loadingMsgTimer = setInterval(() => {
+    i = (i + 1) % msgs.length;
+    el.textContent = msgs[i];
+  }, 1300);
+
   let questionPrefix = "我抽到";
   let past = document.querySelector(".past > img");
   questionPrefix += `過去${past.alt}`;
