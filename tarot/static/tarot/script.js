@@ -13,17 +13,103 @@ const position = [
     "negative"
 ]
 const details = createCardDetails();
+
+// === New interaction state (click-to-place + drag-drop) ===
+let selectedSlotId = null;   // if user clicks a spread first, the next card click will go here
+let draggingCard = null;     // currently dragging card (Pointer Events)
+
+// Place a card into a specific slot id ("past" | "present" | "future")
+function placeCard(card, slotId) {
+    if (!card || !slotId) return;
+    // clear previous classes
+    card.classList.remove("chosen", "past", "present", "future");
+    card.classList.add("on-spread", slotId);
+    // when a card is placed because user pre-selected a slot, clear that preselection
+    if (selectedSlotId) {
+        selectedSlotId = null;
+        const spreads = document.getElementsByClassName("spread");
+        for (const s of spreads) s.classList.remove("selected");
+    }
+}
+
+// Deck click: single-tap any bottom card => auto place into next empty (or preselected) slot
+function onDeckClick(e) {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    // ignore if already on spread (toggling reversed is handled elsewhere)
+    if (card.classList.contains("on-spread")) return;
+    const targetSlot = selectedSlotId || getFirstEmptySpreadId();
+    if (!targetSlot) {
+        blink(); // no empty slot -> hint
+        return;
+    }
+    placeCard(card, targetSlot);
+}
+
+// Clicking a placed card toggles upright/reversed
+function onPlacedCardClick(e) {
+    const card = e.target.closest(".card.on-spread");
+    if (!card) return;
+    card.classList.toggle("reversed");
+}
+
+// Pointer Events drag-drop (works for mouse/touch/pen)
+function onPointerDown(e) {
+    const card = e.target.closest(".card");
+    if (!card) return;
+    draggingCard = card;
+    card.setPointerCapture?.(e.pointerId);
+    card.classList.add("dragging");
+}
+function onPointerMove(e) {
+    if (!draggingCard) return;
+    const x = e.clientX, y = e.clientY;
+    // translate to follow pointer; original absolute positioning is restored on drop
+    draggingCard.style.transform = `translate(${x - draggingCard.offsetWidth/2}px, ${y - draggingCard.offsetHeight/2}px)`;
+}
+function onPointerUp(e) {
+    if (!draggingCard) return;
+    const x = e.clientX, y = e.clientY;
+    const slot = hitSlot(x, y);
+    // restore visual
+    draggingCard.style.transform = "";
+    draggingCard.classList.remove("dragging");
+    if (slot) {
+        placeCard(draggingCard, slot.id);
+    }
+    draggingCard = null;
+}
+
+// hit test against spread slots
+function hitSlot(x, y) {
+    const ids = ["past", "present", "future"];
+    for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
+    }
+    return null;
+}
+
 main();
 
 
 function main() {
     document.getElementById("id_submit").addEventListener("click", clickButton);
-    // createCards();
+    // createCards(); // cards are server-rendered in tarot.html
     handleResize();
     window.addEventListener("resize", handleResize);
-    document.getElementById("cards-deck").addEventListener('touchstart', handleTouchMove);
-    document.getElementById("cards-deck").addEventListener('touchmove', handleTouchMove);
-    // document.getElementById("cards-deck").addEventListener('touchend', handleTouchEnd);
+
+    // New: single-tap to place into next empty / preselected slot
+    document.getElementById("cards-deck").addEventListener("click", onDeckClick);
+    // New: toggle upright/reversed by clicking a placed card
+    document.addEventListener("click", onPlacedCardClick);
+    // New: drag-drop across devices
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
 }
 
 function createCards() {
@@ -205,11 +291,18 @@ function getFirstElementByClass(name) {
 }
 
 function clickSpread(spread) {
-    let chosenCards = document.getElementsByClassName("chosen");
-    for (let card of chosenCards) {
-        card.classList.remove("chosen");
-        card.classList.add(spread.id);
-        card.classList.add("on-spread");
+    // if there's a chosen (highlighted) card not yet placed, place it here
+    const chosenCard = document.querySelector(".card.chosen:not(.on-spread)");
+    if (chosenCard) {
+        chosenCard.classList.remove("chosen");
+        placeCard(chosenCard, spread.id);
+        return;
+    }
+    // otherwise, remember this slot as the target for the next card click
+    selectedSlotId = spread.id;
+    const spreads = document.getElementsByClassName("spread");
+    for (const s of spreads) {
+        s.classList.toggle("selected", s.id === selectedSlotId);
     }
 }
 
@@ -279,4 +372,3 @@ function getRandomElement(array) {
     const randomIndex = Math.floor(Math.random() * array.length);
     return array[randomIndex];
 }
-
