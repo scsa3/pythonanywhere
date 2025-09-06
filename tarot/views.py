@@ -162,11 +162,16 @@ def get_answer(question: str) -> str:
     client = settings.OPENAI_CLIENT
     completion = client.responses.create(
         model="gpt-4o-mini",
-        instructions="我要抽三張塔羅牌，分別對應過去、現在、未來的牌陣，請你用專業的塔羅牌大師會回答的內容來回答我的問題，請以過去、現在、未來做為三大段回答，每段 120–180 字綜合敘述牌義、牌面主要色彩分析、時間長短的影響、牌上元素的內容，最後給予摘要結論跟建議，使用繁體中文。",
+        instructions=(
+            "我要抽三張塔羅牌，分別對應過去、現在、未來的牌陣，請你用專業的塔羅牌大師會回答的內容來回答我的問題，"
+            "請以過去、現在、未來做為三大段回答，每段 120–180 字綜合敘述牌義、牌面主要色彩分析、時間長短的影響、牌上元素的內容，"
+            "最後給予摘要結論跟建議，使用繁體中文。"
+        ),
         input=question,
         temperature=0.7,
     )
     answer = completion.output_text
+    print(answer)
     html = markdown(answer)
 
     return html
