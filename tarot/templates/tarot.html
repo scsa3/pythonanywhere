@@ -23,6 +23,43 @@
             color: #333;
             z-index: 1000;
         }
+        /* --- Interactive highlights --- */
+        .spread.selected {
+            outline: 3px solid #6aa0ff;
+            box-shadow: 0 0 0 4px rgba(106,160,255,0.2) inset, 0 0 12px rgba(106,160,255,0.6);
+            border-radius: 10px;
+        }
+        .spread.breathe {
+            animation: spread-breathe 1.6s ease-in-out infinite;
+            border-radius: 10px;
+        }
+        @keyframes spread-breathe {
+            0%   { box-shadow: 0 0 0 0 rgba(106,160,255,0.55); }
+            50%  { box-shadow: 0 0 0 10px rgba(106,160,255,0.15); }
+            100% { box-shadow: 0 0 0 0 rgba(106,160,255,0.00); }
+        }
+        /* If slot is filled, stop breathing glow */
+        .spread.have-card {
+            animation: none;
+            box-shadow: none;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .controls button {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: #f7f7f7;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #eee;
+        }
     </style>
 </head>
 <body>
@@ -39,6 +76,10 @@
             <img src="{{ card.src }}" class="{{ card.class }}" alt="{{ card.alt }}">
         </div>
     {% endfor %}
+    <div class="controls">
+        <button id="btnUndo" type="button">撤銷</button>
+        <button id="btnReset" type="button">重來</button>
+    </div>
     <form action="{% url 'tarot:answer' %}" method="post" id="id_form">
         {% csrf_token %}
         {{ form }}

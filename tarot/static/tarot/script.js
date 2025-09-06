@@ -18,18 +18,68 @@ const details = createCardDetails();
 let selectedSlotId = null;   // if user clicks a spread first, the next card click will go here
 let draggingCard = null;     // currently dragging card (Pointer Events)
 
+// Undo/Reset history
+const historyStack = []; // entries: { card, fromId, toId }
+
 // Place a card into a specific slot id ("past" | "present" | "future")
-function placeCard(card, slotId) {
+function placeCard(card, slotId, pushHistory = true) {
     if (!card || !slotId) return;
-    // clear previous classes
+    // detect original slot (if the card was already placed)
+    let fromId = null;
+    if (card.classList.contains("on-spread")) {
+        for (const sid of spreadIds) {
+            if (card.classList.contains(sid)) {
+                fromId = sid;
+                break;
+            }
+        }
+    }
+    // clear previous classes and set new slot
     card.classList.remove("chosen", "past", "present", "future");
     card.classList.add("on-spread", slotId);
+
+    // record history (unless suppressed)
+    if (pushHistory) {
+        historyStack.push({ card, fromId, toId: slotId });
+    }
+
     // when a card is placed because user pre-selected a slot, clear that preselection
     if (selectedSlotId) {
         selectedSlotId = null;
         const spreads = document.getElementsByClassName("spread");
         for (const s of spreads) s.classList.remove("selected");
     }
+    // update slot highlights
+    refreshUIHints();
+}
+
+// Undo the last placement/move
+function undo() {
+    const last = historyStack.pop();
+    if (!last) return;
+    const { card, fromId, toId } = last;
+    // remove current placement
+    card.classList.remove("on-spread", "past", "present", "future");
+    // restore previous state
+    if (fromId) {
+        card.classList.add("on-spread", fromId);
+    }
+    refreshUIHints();
+}
+
+// Reset all placements
+function resetAll() {
+    historyStack.length = 0;
+    const cards = document.getElementsByClassName("card");
+    for (const c of cards) {
+        c.classList.remove("on-spread", "past", "present", "future", "reversed", "chosen");
+        c.style.transform = "";
+        c.classList.remove("dragging");
+    }
+    selectedSlotId = null;
+    const spreads = document.getElementsByClassName("spread");
+    for (const s of spreads) s.classList.remove("selected", "breathe", "have-card");
+    refreshUIHints();
 }
 
 // Deck click: single-tap any bottom card => auto place into next empty (or preselected) slot
@@ -92,6 +142,23 @@ function hitSlot(x, y) {
     return null;
 }
 
+// Update visual hints: selected (preselected slot), breathe (next empty), and have-card
+function refreshUIHints() {
+    const nextId = getFirstEmptySpreadId();
+    const spreads = document.getElementsByClassName("spread");
+    let filledAll = true;
+    for (const s of spreads) {
+        const hasCard = !!document.querySelector(`.card.on-spread.${s.id}`);
+        s.classList.toggle("have-card", hasCard);
+        s.classList.toggle("selected", selectedSlotId === s.id);
+        const shouldBreathe = !selectedSlotId && nextId === s.id && !hasCard;
+        s.classList.toggle("breathe", shouldBreathe);
+        if (!hasCard) filledAll = false;
+    }
+    const submit = document.getElementById("id_submit");
+    if (submit) submit.disabled = !filledAll;
+}
+
 main();
 
 
@@ -110,6 +177,26 @@ function main() {
     document.addEventListener("pointermove", onPointerMove);
     document.addEventListener("pointerup", onPointerUp);
     document.addEventListener("pointercancel", onPointerUp);
+
+    // Controls: Undo / Reset
+    document.getElementById("btnUndo")?.addEventListener("click", undo);
+    document.getElementById("btnReset")?.addEventListener("click", resetAll);
+
+    // Keyboard: Z = undo (skip when typing), Cmd/Ctrl+Backspace = reset
+    document.addEventListener("keydown", (e) => {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+        if (tag === "input" || tag === "textarea") return;
+        if ((e.key === "z" || e.key === "Z") && !e.ctrlKey && !e.metaKey && !e.altKey) {
+            undo();
+        }
+        if ((e.key === "Backspace") && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            resetAll();
+        }
+    });
+
+    // initial UI hint state
+    refreshUIHints();
 }
 
 function createCards() {
@@ -304,6 +391,7 @@ function clickSpread(spread) {
     for (const s of spreads) {
         s.classList.toggle("selected", s.id === selectedSlotId);
     }
+    refreshUIHints();
 }
 
 function cleanClass(elements, name) {
