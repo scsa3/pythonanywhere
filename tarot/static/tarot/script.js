@@ -1,462 +1,240 @@
 let cardNumber = 100;
 let deck = document.getElementById("cards-deck");
 const spreadIds = ["past", "present", "future"];
-const suits = [
-    "maj",
-    "cups",
-    "pents",
-    "swords",
-    "wands",
-]
-const position = [
-    "positive",
-    "negative"
-]
+const suits = ["maj", "cups", "pents", "swords", "wands"];
+const position = ["positive", "negative"];
 const details = createCardDetails();
 
 // === New interaction state (click-to-place + drag-drop) ===
-let selectedSlotId = null;   // if user clicks a spread first, the next card click will go here
-let draggingCard = null;     // currently dragging card (Pointer Events)
+let selectedSlotId = null;
+let draggingCard = null;
+let dragOffsetX = 0;       // 保留（未使用也無妨）
+let dragOffsetY = 0;
+let dragStartClientX = 0;  // 新增：記錄指標起點
+let dragStartClientY = 0;
 
 // Undo/Reset history
-const historyStack = []; // entries: { card, fromId, toId }
+const historyStack = [];
 
 // Place a card into a specific slot id ("past" | "present" | "future")
 function placeCard(card, slotId, pushHistory = true) {
-    if (!card || !slotId) return;
-    // detect original slot (if the card was already placed)
-    let fromId = null;
-    if (card.classList.contains("on-spread")) {
-        for (const sid of spreadIds) {
-            if (card.classList.contains(sid)) {
-                fromId = sid;
-                break;
-            }
-        }
-    }
-    // clear previous classes and set new slot
-    card.classList.remove("chosen", "past", "present", "future");
-    card.classList.add("on-spread", slotId);
+  if (!card || !slotId) return;
+  let fromId = null;
+  if (card.classList.contains("on-spread")) {
+    for (const sid of spreadIds) if (card.classList.contains(sid)) { fromId = sid; break; }
+  }
+  card.classList.remove("chosen","past","present","future");
+  card.classList.add("on-spread", slotId);
+  if (pushHistory) historyStack.push({ card, fromId, toId: slotId });
 
-    // record history (unless suppressed)
-    if (pushHistory) {
-        historyStack.push({ card, fromId, toId: slotId });
-    }
-
-    // when a card is placed because user pre-selected a slot, clear that preselection
-    if (selectedSlotId) {
-        selectedSlotId = null;
-        const spreads = document.getElementsByClassName("spread");
-        for (const s of spreads) s.classList.remove("selected");
-    }
-    // update slot highlights
-    refreshUIHints();
-}
-
-// Undo the last placement/move
-function undo() {
-    const last = historyStack.pop();
-    if (!last) return;
-    const { card, fromId, toId } = last;
-    // remove current placement
-    card.classList.remove("on-spread", "past", "present", "future");
-    // restore previous state
-    if (fromId) {
-        card.classList.add("on-spread", fromId);
-    }
-    refreshUIHints();
-}
-
-// Reset all placements
-function resetAll() {
-    historyStack.length = 0;
-    const cards = document.getElementsByClassName("card");
-    for (const c of cards) {
-        c.classList.remove("on-spread", "past", "present", "future", "reversed", "chosen");
-        c.style.transform = "";
-        c.classList.remove("dragging");
-    }
+  if (selectedSlotId) {
     selectedSlotId = null;
     const spreads = document.getElementsByClassName("spread");
-    for (const s of spreads) s.classList.remove("selected", "breathe", "have-card");
-    refreshUIHints();
+    for (const s of spreads) s.classList.remove("selected");
+  }
+  refreshUIHints();
 }
 
-// Deck click: single-tap any bottom card => auto place into next empty (or preselected) slot
+function undo() {
+  const last = historyStack.pop();
+  if (!last) return;
+  const { card, fromId } = last;
+  card.classList.remove("on-spread","past","present","future");
+  if (fromId) card.classList.add("on-spread", fromId);
+  refreshUIHints();
+}
+
+function resetAll() {
+  historyStack.length = 0;
+  const cards = document.getElementsByClassName("card");
+  for (const c of cards) {
+    c.classList.remove("on-spread","past","present","future","reversed","chosen");
+    c.style.transform = "";
+    c.classList.remove("dragging");
+  }
+  selectedSlotId = null;
+  const spreads = document.getElementsByClassName("spread");
+  for (const s of spreads) s.classList.remove("selected","breathe","have-card");
+  refreshUIHints();
+}
+
+// click bottom card => place into next empty / preselected slot
 function onDeckClick(e) {
-    const card = e.target.closest(".card");
-    if (!card) return;
-    // ignore if already on spread (toggling reversed is handled elsewhere)
-    if (card.classList.contains("on-spread")) return;
-    const targetSlot = selectedSlotId || getFirstEmptySpreadId();
-    if (!targetSlot) {
-        blink(); // no empty slot -> hint
-        return;
-    }
-    placeCard(card, targetSlot);
+  const card = e.target.closest(".card");
+  if (!card) return;
+  if (card.classList.contains("on-spread")) return;
+  const targetSlot = selectedSlotId || getFirstEmptySpreadId();
+  if (!targetSlot) { blink(); return; }
+  placeCard(card, targetSlot);
 }
 
-// Clicking a placed card toggles upright/reversed
+// click placed card => toggle reversed
 function onPlacedCardClick(e) {
-    const card = e.target.closest(".card.on-spread");
-    if (!card) return;
-    card.classList.toggle("reversed");
+  const card = e.target.closest(".card.on-spread");
+  if (!card) return;
+  card.classList.toggle("reversed");
 }
 
-// Pointer Events drag-drop (works for mouse/touch/pen)
+// drag-drop (Pointer Events)
 function onPointerDown(e) {
-    const card = e.target.closest(".card");
-    if (!card) return;
-    draggingCard = card;
-    card.setPointerCapture?.(e.pointerId);
-    card.classList.add("dragging");
+  const card = e.target.closest(".card");
+  if (!card) return;
+  draggingCard = card;
+  card.setPointerCapture?.(e.pointerId);
+  card.classList.add("dragging");
+
+  // 用指標起點，後續用 Δx/Δy，避免一按就跳
+  dragStartClientX = e.clientX;
+  dragStartClientY = e.clientY;
 }
 function onPointerMove(e) {
-    if (!draggingCard) return;
-    const x = e.clientX, y = e.clientY;
-    // translate to follow pointer; original absolute positioning is restored on drop
-    draggingCard.style.transform = `translate(${x - draggingCard.offsetWidth/2}px, ${y - draggingCard.offsetHeight/2}px)`;
+  if (!draggingCard) return;
+  const dx = e.clientX - dragStartClientX;
+  const dy = e.clientY - dragStartClientY;
+
+  // 保留 translateX(-50%)（原本置中），再疊加拖曳位移與視覺放大
+  draggingCard.style.transform = `translateX(-50%) translate(${dx}px, ${dy}px) scale(1.04)`;
 }
 function onPointerUp(e) {
-    if (!draggingCard) return;
-    const x = e.clientX, y = e.clientY;
-    const slot = hitSlot(x, y);
-    // restore visual
-    draggingCard.style.transform = "";
-    draggingCard.classList.remove("dragging");
-    if (slot) {
-        placeCard(draggingCard, slot.id);
-    }
-    draggingCard = null;
+  if (!draggingCard) return;
+  const x = e.clientX, y = e.clientY;
+  const slot = hitSlot(x, y);
+  draggingCard.style.transform = "";
+  draggingCard.classList.remove("dragging");
+  if (slot) placeCard(draggingCard, slot.id);
+  draggingCard = null;
 }
 
-// hit test against spread slots
+// slot hit-test
 function hitSlot(x, y) {
-    const ids = ["past", "present", "future"];
-    for (const id of ids) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
-    }
-    return null;
+  for (const id of ["past","present","future"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return el;
+  }
+  return null;
 }
 
-// Update visual hints: selected (preselected slot), breathe (next empty), and have-card
+// UI hints & submit enable
 function refreshUIHints() {
-    const nextId = getFirstEmptySpreadId();
-    const spreads = document.getElementsByClassName("spread");
-    let filledAll = true;
-    for (const s of spreads) {
-        const hasCard = !!document.querySelector(`.card.on-spread.${s.id}`);
-        s.classList.toggle("have-card", hasCard);
-        s.classList.toggle("selected", selectedSlotId === s.id);
-        const shouldBreathe = !selectedSlotId && nextId === s.id && !hasCard;
-        s.classList.toggle("breathe", shouldBreathe);
-        if (!hasCard) filledAll = false;
-    }
-    const submit = document.getElementById("id_submit");
-    if (submit) submit.disabled = !filledAll;
+  const nextId = getFirstEmptySpreadId();
+  const spreads = document.getElementsByClassName("spread");
+  let filledAll = true;
+  for (const s of spreads) {
+    const hasCard = !!document.querySelector(`.card.on-spread.${s.id}`);
+    s.classList.toggle("have-card", hasCard);
+    s.classList.toggle("selected", selectedSlotId === s.id);
+    const shouldBreathe = !selectedSlotId && nextId === s.id && !hasCard;
+    s.classList.toggle("breathe", shouldBreathe);
+    if (!hasCard) filledAll = false;
+  }
+  const submit = document.getElementById("id_submit");
+  if (submit) {
+    submit.disabled = !filledAll;        // 一直顯示，滿三張才啟用
+    submit.classList.remove("hidden","ready");
+  }
 }
 
 main();
 
-
 function main() {
-    document.getElementById("id_submit").addEventListener("click", clickButton);
-    // createCards(); // cards are server-rendered in tarot.html
-    handleResize();
-    window.addEventListener("resize", handleResize);
+  document.getElementById("id_submit").addEventListener("click", clickButton);
+  handleResize();
+  window.addEventListener("resize", handleResize);
 
-    // New: single-tap to place into next empty / preselected slot
-    document.getElementById("cards-deck").addEventListener("click", onDeckClick);
-    // New: toggle upright/reversed by clicking a placed card
-    document.addEventListener("click", onPlacedCardClick);
-    // New: drag-drop across devices
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("pointermove", onPointerMove);
-    document.addEventListener("pointerup", onPointerUp);
-    document.addEventListener("pointercancel", onPointerUp);
+  document.getElementById("cards-deck").addEventListener("click", onDeckClick);
+  document.addEventListener("click", onPlacedCardClick);
 
-    // Controls: Undo / Reset
-    document.getElementById("btnUndo")?.addEventListener("click", undo);
-    document.getElementById("btnReset")?.addEventListener("click", resetAll);
+  document.addEventListener("pointerdown", onPointerDown);
+  document.addEventListener("pointermove", onPointerMove);
+  document.addEventListener("pointerup", onPointerUp);
+  document.addEventListener("pointercancel", onPointerUp);
 
-    // Keyboard: Z = undo (skip when typing), Cmd/Ctrl+Backspace = reset
-    document.addEventListener("keydown", (e) => {
-        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
-        if (tag === "input" || tag === "textarea") return;
-        if ((e.key === "z" || e.key === "Z") && !e.ctrlKey && !e.metaKey && !e.altKey) {
-            undo();
-        }
-        if ((e.key === "Backspace") && (e.metaKey || e.ctrlKey)) {
-            e.preventDefault();
-            resetAll();
-        }
-    });
+  document.getElementById("btnUndo")?.addEventListener("click", undo);
+  document.getElementById("btnReset")?.addEventListener("click", resetAll);
 
-    // initial UI hint state
-    refreshUIHints();
+  document.addEventListener("keydown", (e) => {
+    const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+    if (tag === "input" || tag === "textarea") return;
+    if ((e.key === "z" || e.key === "Z") && !e.ctrlKey && !e.metaKey && !e.altKey) undo();
+    if ((e.key === "Backspace") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); resetAll(); }
+  });
+
+  refreshUIHints();
+  document.querySelectorAll('.front').forEach(img => img.draggable = false);
 }
 
-function createCards() {
-    for (let i = 0; i < details.length; i++) {
-        let card = document.createElement("div");
-        card.classList.add("card");
-        card.addEventListener("click", clickCard);
-        createBack(card);
-        createFront(card, i);
-        deck.appendChild(card);
-    }
-}
-
-function createPosition(card, i) {
-    let div = document.createElement("div");
-    let position = details[i].position;
-    div.classList.add(position);
-    card.appendChild(div);
-    return div;
-}
-
-function createBack(card) {
-    let back = document.createElement("div");
-    back.classList.add("back");
-    card.appendChild(back);
-}
-
-function createFront(card, i) {
-    let front = document.createElement("img");
-    const detail = details[i];
-    front.src = detail.src;
-    front.classList.add("front");
-    front.classList.add(detail.position);
-    // front.addEventListener("click", clickCard);
-    // front.addEventListener("touchend", clickCard);
-    card.appendChild(front);
-}
-
+/* ===== utilities / legacy touch helpers ===== */
+function createCards() { /* 略，同你現有 */ }
+function createPosition(card, i) { /* 略 */ }
+function createBack(card) { /* 略 */ }
+function createFront(card, i) { /* 略 */ }
 function handleResize() {
-    let [y, rad, r] = getYRad();
-    rad = rad * 0.9;
-    let cards = document.getElementsByClassName("card");
-    let radNumber = details.length + 1;
-    let shiftRad = rad / radNumber;
-    for (let i = 0; i < details.length; i++) {
-        const thisRad = shiftRad * (i + 1) - rad / 2;
-        let xPrefix;
-        if (thisRad < 0) {
-            xPrefix = -1;
-        } else {
-            xPrefix = 1;
-        }
-        const shiftX = r * Math.sin(thisRad);
-        const shiftY = r * Math.cos(thisRad);
-        const realY = r - shiftY;
-        const realX = Math.round(deck.offsetWidth / 2 + shiftX);
-        let rotate = shiftRad * (i + 1) - rad / 2;
-        cards[i].style.left = `${Math.round(realX)}px`;
-        cards[i].style.top = `${Math.round(realY)}px`;
-        // cards[i].style.transform = `translateY(${y}px) rotate(${rotate}rad) translateY(${-y}px) rotate(${-rotate}rad)`;
-    }
+  let [y, rad, r] = getYRad();
+  rad = rad * 0.9;
+  const cards = document.getElementsByClassName("card");
+  const n = cards.length;
+  const shiftRad = rad / (n + 1);
+  for (let i = 0; i < n; i++) {
+    const thisRad = shiftRad * (i + 1) - rad / 2;
+    const shiftX = r * Math.sin(thisRad);
+    const shiftY = r * Math.cos(thisRad);
+    const realY = r - shiftY;
+    const realX = Math.round(deck.offsetWidth / 2 + shiftX);
+    cards[i].style.left = `${Math.round(realX)}px`;
+    cards[i].style.top  = `${Math.round(realY)}px`;
+  }
 }
-
-function getYRad() {
-    const w = deck.offsetWidth;
-    const h = deck.offsetHeight;
-    let r = (h / 2) + (w ** 2 / 8 / h);
-    let y = Math.round(r * 0.9);
-    let rad = Math.asin(w / 2 / r) * 2;
-    return [y, rad, r];
-}
-
-function clickCard(event) {
-    if (event.target.classList.contains("back")) {
-        return;
-    }
-    let cards = document.getElementsByClassName("card");
-    cleanClass(cards, "chosen");
-    let card = event.target;
-    if (card.tagName === "IMG") {
-        card = card.parentNode;
-    }
-    card.classList.add("chosen");
-    card.classList.remove("on-spread");
-    for (let id of spreadIds) {
-        card.classList.remove(id);
-    }
-}
-
-function handleTouchMove(event) {
-
-    let cards = document.getElementsByClassName("card");
-    cards = Array.from(cards);
-    // cards = cards.reverse();
-    let count = 0;
-    let isAddChosen = true;
-    for (let card of cards) {
-        let rect = card.getBoundingClientRect();
-
-        if (
-            isTouchOnCard(rect, event) &&
-            !card.classList.contains("on-spread") &&
-            isAddChosen
-        ) {
-            event.preventDefault();
-            card.classList.add("chosen");
-            isAddChosen = false;
-        } else {
-            card.classList.remove("chosen");
-        }
-    }
-
-}
-
-function isTouchOnCard(rect, event) {
-    let touchX = event.touches[0].clientX;
-    let touchY = event.touches[0].clientY;
-    return (
-        touchX >= rect.left
-        && touchX <= rect.left + rect.width / 2
-        && touchY >= rect.top
-        && touchY < rect.bottom
-    )
-}
-
-function handleTouchEnd(event) {
-    if (isTouchOnSpread(event)) {
-        return;
-    }
-    let deck = document.getElementById("spread-deck");
-    let chosenCard = getFirstElementByClass("chosen");
-    let id = getFirstEmptySpreadId();
-    if (chosenCard && id) {
-        chosenCard.classList.remove("chosen");
-        chosenCard.classList.add(id);
-        chosenCard.classList.add("on-spread");
-    }
-    let spreadCards = document.getElementsByClassName("on-spread");
-    if (spreadCards.length >= 3) {
-    }
-}
-
-
+function getYRad() { const w = deck.offsetWidth, h = deck.offsetHeight; let r = (h/2)+(w**2/8/h); let y = Math.round(r*0.9); let rad = Math.asin(w/2/r)*2; return [y,rad,r]; }
+function clickCard(e) { /* 略 */ }
+function handleTouchMove(e) { /* 略 */ }
+function isTouchOnCard(rect,e){ /* 略 */ }
+function handleTouchEnd(e){ /* 略 */ }
 function clickButton(event) {
-    document.getElementById("loadingOverlay").style.display = "flex";
-    event.preventDefault();
-    let questionPrefix = "我抽到";
-    let past = document.querySelector(".past > img");
-    questionPrefix += `過去${past.alt}`;
-    let present = document.querySelector(".present > img");
-    questionPrefix += `現在${present.alt}`;
-    let future = document.querySelector(".future > img");
-    questionPrefix += `未來${future.alt}。我想問`;
-    let question = document.getElementById("id_question")
-    question.value = `${questionPrefix}${question.value}`;
-    console.log(question.value);
-    console.log(document.getElementById("id_form"));
-    document.getElementById("id_form").submit();
+  document.getElementById("loadingOverlay").style.display = "flex";
+  event.preventDefault();
+  let questionPrefix = "我抽到";
+  let past = document.querySelector(".past > img");
+  questionPrefix += `過去${past.alt}`;
+  let present = document.querySelector(".present > img");
+  questionPrefix += `現在${present.alt}`;
+  let future = document.querySelector(".future > img");
+  questionPrefix += `未來${future.alt}。我想問`;
+  let question = document.getElementById("id_question");
+  question.value = `${questionPrefix}${question.value}`;
+  document.getElementById("id_form").submit();
 }
-
-function isTouchOnSpread(event) {
-    let touchY = event.changedTouches[0].clientY;
-    let spreadDeck = document.getElementById("spread-deck");
-    return touchY < spreadDeck.offsetHeight
-}
-
-function getFirstEmptySpreadId() {
-    for (let id of spreadIds) {
-        let card = getFirstElementByClass(id);
-        if (!card) {
-            return id;
-        }
-    }
-}
-
-function getFirstElementByClass(name) {
-    const selector = `.${name}`;
-    return document.querySelector(selector);
-}
-
+function isTouchOnSpread(event) { let touchY = event.changedTouches[0].clientY; let spreadDeck = document.getElementById("spread-deck"); return touchY < spreadDeck.offsetHeight; }
+function getFirstEmptySpreadId() { for (let id of spreadIds) if (!getFirstElementByClass(id)) return id; }
+function getFirstElementByClass(name) { return document.querySelector(`.${name}`); }
 function clickSpread(spread) {
-    // if there's a chosen (highlighted) card not yet placed, place it here
-    const chosenCard = document.querySelector(".card.chosen:not(.on-spread)");
-    if (chosenCard) {
-        chosenCard.classList.remove("chosen");
-        placeCard(chosenCard, spread.id);
-        return;
-    }
-    // otherwise, remember this slot as the target for the next card click
-    selectedSlotId = spread.id;
-    const spreads = document.getElementsByClassName("spread");
-    for (const s of spreads) {
-        s.classList.toggle("selected", s.id === selectedSlotId);
-    }
-    refreshUIHints();
+  const chosen = document.querySelector(".card.chosen:not(.on-spread)");
+  if (chosen) { chosen.classList.remove("chosen"); placeCard(chosen, spread.id); return; }
+  selectedSlotId = spread.id;
+  const spreads = document.getElementsByClassName("spread");
+  for (const s of spreads) s.classList.toggle("selected", s.id === selectedSlotId);
+  refreshUIHints();
 }
-
-function cleanClass(elements, name) {
-    for (let e of elements) {
-        e.classList.remove(name);
-    }
-}
-
-function blink() {
-    let spreads = document.getElementsByClassName("spread");
-    for (let s of spreads) {
-        if (s.classList.contains("have-card")) {
-            continue;
-        }
-        s.classList.add("blink");
-        setTimeout(() => {
-            s.classList.remove("blink");
-        }, 1000)
-    }
-}
-
-class Detail {
-    src;
-    position;
-}
-
-
+function cleanClass(elements, name) { for (let e of elements) e.classList.remove(name); }
+function blink() { let spreads = document.getElementsByClassName("spread"); for (let s of spreads) { if (s.classList.contains("have-card")) continue; s.classList.add("blink"); setTimeout(()=>s.classList.remove("blink"), 1000); } }
+class Detail { src; position; }
 function createCardDetails() {
-    let srcs = [];
-    let results = [];
-    for (let suit of suits) {
-        let start = 0;
-        let end = 22;
-        if (suit === "maj") {
-            start = 0;
-            end = 21;
-        } else {
-            start = 1;
-            end = 14;
-        }
-        srcs = srcs.concat(getASuitSrcs(suit, start, end));
-    }
-    for (let src of srcs) {
-        let result = {
-            src: src,
-            position: getRandomElement(position),
-        }
-        results.push(result);
-
-    }
-    return results;
+  let srcs = [], results = [];
+  for (let suit of suits) {
+    let start = 0, end = 22;
+    if (suit !== "maj") { start = 1; end = 14; }
+    srcs = srcs.concat(getASuitSrcs(suit, start, end));
+  }
+  for (let src of srcs) results.push({ src, position: getRandomElement(position) });
+  return results;
 }
-
 function getASuitSrcs(suit, start, end) {
-    let results = [];
-    let srcPrefix = "/static/tarot/cards/";
-    for (let i = start; i <= end; i++) {
-        let number = i.toString().padStart(2, '0');
-        let src = `${srcPrefix}${suit}${number}.jpg`
-        results.push(src);
-    }
-    return results;
+  let results = [], srcPrefix = "/static/tarot/cards/";
+  for (let i = start; i <= end; i++) {
+    let number = i.toString().padStart(2, '0');
+    results.push(`${srcPrefix}${suit}${number}.jpg`);
+  }
+  return results;
 }
-
-function getRandomElement(array) {
-    const randomIndex = Math.floor(Math.random() * array.length);
-    return array[randomIndex];
-}
+function getRandomElement(array) { return array[Math.floor(Math.random() * array.length)]; }

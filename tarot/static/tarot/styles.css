@@ -1,122 +1,169 @@
+/* ====== Base layout ====== */
 body, html {
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* 橫向/桌機以 fixed 控制列；直向時在下方 media 會改成 auto */
+  padding-bottom: clamp(80px, 14vh, 140px); /* 預留控制列空間 */
 }
 
 .deck {
-    position: relative;
-    margin: 0 auto;
-    height: 50%;
-    text-align: center;
-    justify-content: center;
+  position: relative;
+  margin: 0 auto;
+  height: 50%;
+  text-align: center;
+  justify-content: center;
 }
 
-.top {
-    display: flex;
-    align-items: center;
-    /*background-color: white;*/
-}
+.top { display: flex; align-items: center; }
+.bottom { display: flex; }
 
-.bottom {
-    display: flex;
-    /*background-color: blue;*/
-}
-
+/* ====== Spread slots ====== */
 .spread {
-    height: 50%;
-    aspect-ratio: 1/2;
-    border-style: dotted;
-    border-width: 2px;
-    border-color: rgba(0, 0, 0, 0.2);
-    position: absolute;
-    border-radius: 10%;
+  height: 50%;
+  aspect-ratio: 1/2;
+  border: 2px dotted rgba(0,0,0,0.2);
+  position: absolute;
+  border-radius: 10%;
 }
+#past   { transform: translateX(-25vw); }
+#future { transform: translateX(25vw); }
 
-#past {
-    transform: translateX(-25vw);
-}
-
-#future {
-    transform: translateX(25vw);
-}
-
+/* ====== Cards ====== */
 .card {
-    position: absolute;
-    height: 50%;
-    aspect-ratio: 1/2;
-    transform-style: preserve-3d;
-    transform: translateX(-50%);
+  position: absolute;
+  z-index: 2; /* 卡片層級 */
+  height: 50%;
+  aspect-ratio: 1/2;
+  transform-style: preserve-3d;
+  transform: translateX(-50%);
+  touch-action: none; /* 觸控裝置正確送 Pointer Events */
 }
-
-.chosen {
-    background-color: green;
-    transform: translateY(-50%) translateX(-50%);
-}
-
-.past {
-    /*transform: translateY(-37.5vh) translateX(-25vw) rotateY(180deg); !important;*/
-    top: -25vh !important;
-    left: 25vw !important;
-    transform: rotateY(180deg) translateX(50%) translateY(-50%);
-}
-
-.present {
-    top: -25vh !important;
-    left: 50vw !important;
-    transform: rotateY(180deg) translateX(50%) translateY(-50%);
-}
-
-.future {
-    top: -25vh !important;
-    left: 75vw !important;
-    transform: rotateY(180deg) translateX(50%) translateY(-50%);
-}
-
-.blink {
-    background-color: white;
-}
+.chosen { background-color: green; transform: translateY(-50%) translateX(-50%); }
+.past    { top: -25vh !important; left: 25vw !important; transform: rotateY(180deg) translateX(50%) translateY(-50%); }
+.present { top: -25vh !important; left: 50vw !important; transform: rotateY(180deg) translateX(50%) translateY(-50%); }
+.future  { top: -25vh !important; left: 75vw !important; transform: rotateY(180deg) translateX(50%) translateY(-50%); }
+.blink { background-color: white; }
 
 .back {
-    width: 100%;
-    height: 100%;
-    background-image: url("Luna-Sol-back.jpg");
-    background-size: 100% 100%;
-    border-color: gold;
-    border-width: 1px;
-    border-style: solid;
-    border-radius: 10%;
-    backface-visibility: hidden;
+  width: 100%; height: 100%;
+  background-image: url("Luna-Sol-back.jpg");
+  background-size: 100% 100%;
+  border: 1px solid gold;
+  border-radius: 10%;
+  backface-visibility: hidden;
 }
-
 .front {
-    position: absolute;
-    top: 0;
-    left: 0;
-    backface-visibility: hidden;
-    transform: rotateY(180deg);
+  position: absolute; top: 0; left: 0;
+  backface-visibility: hidden;
+  transform: rotateY(180deg);
+  width: 100%; height: 100%;
+  border-radius: 10%;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+.negative { transform: rotateY(180deg) rotate(180deg); }
+
+/* ====== Loading overlay ====== */
+.loading-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.8);
+  justify-content: center;
+  align-items: center;
+  font-size: 5vw;
+  color: #333;
+  z-index: 1000;
+}
+
+/* ====== Interactive highlights ====== */
+.spread.selected {
+  outline: 3px solid #6aa0ff;
+  box-shadow: 0 0 0 4px rgba(106,160,255,0.2) inset, 0 0 12px rgba(106,160,255,0.6);
+  border-radius: 10px;
+}
+.spread.breathe {
+  animation: spread-breathe 1.6s ease-in-out infinite;
+  border-radius: 10px;
+}
+@keyframes spread-breathe {
+  0%   { box-shadow: 0 0 0 0 rgba(106,160,255,0.55); }
+  50%  { box-shadow: 0 0 0 10px rgba(106,160,255,0.15); }
+  100% { box-shadow: 0 0 0 0 rgba(106,160,255,0.00); }
+}
+.spread.have-card { animation: none; box-shadow: none; }
+
+/* 確保卡片可點 */
+.deck.bottom { position: relative; }
+.deck.bottom .card { pointer-events: auto; }
+
+/* ====== Controls (Undo / Reset / Get Reading) — 預設用 fixed（桌機/橫向） ====== */
+.controls {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(12px, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(8px);
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 10;              /* 高於 .card 的 z-index:2 */
+  pointer-events: none;     /* 容器不吃事件，避免擋牌 */
+}
+.controls > * { pointer-events: auto; }  /* 只有按鈕吃事件 */
+
+.controls button,
+.controls input[type="submit"] {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #f7f7f7;
+  color: #111827;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.controls .primary {
+  background: #2563eb;
+  color: #fff;
+  border-color: #1e40af;
+}
+.controls .primary:disabled {
+  background: #e5e7eb;   /* 淺灰底 */
+  color: #6b7280;        /* 清楚的灰字 */
+  border-color: #d1d5db;
+  opacity: 1;
+  cursor: not-allowed;
+}
+.controls button:hover,
+.controls input[type="submit"]:hover:not(:disabled) { background: #eee; }
+
+/* ====== 拖曳中的卡片視覺（transform 交給 JS） ====== */
+.card.dragging {
+  z-index: 999;
+  cursor: grabbing;
+}
+
+/* ====== 直向（豎屏）特化：用 sticky，永遠在可視底部 ====== */
+@media (orientation: portrait) {
+  html, body { overflow: auto; } /* 允許直向捲動 */
+  .controls {
+    position: sticky;
+    left: 0; right: 0;
+    bottom: 0;
+    transform: none;
     width: 100%;
-    height: 100%;
-    border-radius: 10%;
-}
-
-
-.negative {
-    transform: rotateY(180deg) rotate(180deg);
-}
-
-button {
-    position: absolute;
-    z-index: 10;
-    bottom: 25%;
-    height: auto;
-    transform: translateY(-25%);
-}
-
-form > input[type=submit] {
-    position: absolute;
-    height: auto;
-    z-index: 100;
-    transform: translateX(-50%) translateY(50%);
-    bottom: 25%;
+    justify-content: center;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.10);
+    margin-top: 16px;
+    pointer-events: auto; /* sticky 時容器可吃事件，因為不會蓋住牌面 */
+  }
+  body { padding-bottom: env(safe-area-inset-bottom); } /* 依裝置底部安全區調整 */
 }

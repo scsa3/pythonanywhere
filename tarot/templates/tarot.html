@@ -1,90 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
-    <link rel="shortcut icon" type="image/png" href="{% static 'tarot/tarot-card.png' %}">
-    <link rel="stylesheet" href="{% static 'tarot/styles.css' %}">
-    <script src="{% static 'tarot/script.js' %}?ver={{ css_version }}" defer></script>
-    <style>
-        .loading-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            justify-content: center;
-            align-items: center;
-            font-size: 5vw; /* Use viewport width for font-size */
-            color: #333;
-            z-index: 1000;
-        }
-        /* --- Interactive highlights --- */
-        .spread.selected {
-            outline: 3px solid #6aa0ff;
-            box-shadow: 0 0 0 4px rgba(106,160,255,0.2) inset, 0 0 12px rgba(106,160,255,0.6);
-            border-radius: 10px;
-        }
-        .spread.breathe {
-            animation: spread-breathe 1.6s ease-in-out infinite;
-            border-radius: 10px;
-        }
-        @keyframes spread-breathe {
-            0%   { box-shadow: 0 0 0 0 rgba(106,160,255,0.55); }
-            50%  { box-shadow: 0 0 0 10px rgba(106,160,255,0.15); }
-            100% { box-shadow: 0 0 0 0 rgba(106,160,255,0.00); }
-        }
-        /* If slot is filled, stop breathing glow */
-        .spread.have-card {
-            animation: none;
-            box-shadow: none;
-        }
-        .controls {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            align-items: center;
-            margin: 10px 0;
-        }
-        .controls button {
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: #f7f7f7;
-            cursor: pointer;
-        }
-        .controls button:hover {
-            background: #eee;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>Tarot</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% load static %}
+  <link rel="shortcut icon" type="image/png" href="{% static 'tarot/tarot-card.png' %}">
+  <!-- 避免快取 -->
+  <link rel="stylesheet" href="{% static 'tarot/styles.css' %}?ver={{ css_version }}">
+  <script src="{% static 'tarot/script.js' %}?ver={{ css_version }}" defer></script>
 </head>
 <body>
 <div id="loadingOverlay" class="loading-overlay">Loading...</div>
+
 <div class="deck top" id="spread-deck">
-    <div class="spread" id="past" onclick="clickSpread(this)"></div>
-    <div class="spread" id="present" onclick="clickSpread(this)"></div>
-    <div class="spread" id="future" onclick="clickSpread(this)"></div>
+  <div class="spread" id="past" onclick="clickSpread(this)"></div>
+  <div class="spread" id="present" onclick="clickSpread(this)"></div>
+  <div class="spread" id="future" onclick="clickSpread(this)"></div>
 </div>
+
 <div class="deck bottom" id="cards-deck">
-    {% for card in cards %}
-        <div class="card" id="card{{ forloop.counter0 }}">
-            <div class="back"></div>
-            <img src="{{ card.src }}" class="{{ card.class }}" alt="{{ card.alt }}">
-        </div>
-    {% endfor %}
-    <div class="controls">
-        <button id="btnUndo" type="button">撤銷</button>
-        <button id="btnReset" type="button">重來</button>
+  {% for card in cards %}
+    <div class="card" id="card{{ forloop.counter0 }}">
+      <div class="back"></div>
+      <img src="{{ card.src }}" class="{{ card.class }}" alt="{{ card.alt }}">
     </div>
-    <form action="{% url 'tarot:answer' %}" method="post" id="id_form">
-        {% csrf_token %}
-        {{ form }}
-        <input type="submit" value="Read tarot" id="id_submit">
-    </form>
+  {% endfor %}
 </div>
+
+<form action="{% url 'tarot:answer' %}" method="post" id="id_form">
+  {% csrf_token %}
+  {{ form }}
+  <div class="controls">
+    <button id="btnUndo" type="button" aria-label="Undo last action">Undo</button>
+    <button id="btnReset" type="button" aria-label="Reset all cards">Reset</button>
+    <input type="submit" value="Get Reading" id="id_submit" class="primary" aria-label="Get reading">
+  </div>
+</form>
 </body>
 </html>
