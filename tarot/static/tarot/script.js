@@ -144,7 +144,7 @@ function refreshUIHints() {
 main();
 
 function main() {
-  document.getElementById("id_submit").addEventListener("click", clickButton);
+  document.getElementById("id_submit").addEventListener("click", clickButton, { once: true });
   handleResize();
   window.addEventListener("resize", handleResize);
 
@@ -220,7 +220,12 @@ function handleTouchMove(e) { /* 舊流程保留相容 */ }
 function isTouchOnCard(rect, e) { /* 舊流程保留相容 */ }
 function handleTouchEnd(e) { /* 舊流程保留相容 */ }
 
+// script.js
 function clickButton(event) {
+  // 防連點：已經在 loading 就不再啟動
+  if (window.__loadingActive) return;
+  window.__loadingActive = true;
+
   const overlay = document.getElementById("loadingOverlay");
   overlay.style.display = "flex";
   event.preventDefault();
@@ -233,14 +238,28 @@ function clickButton(event) {
     "解析當下的脈絡…",
     "推演未來的走向…"
   ];
+
+  // —— 精準 1 秒輪播（用 setTimeout 校正誤差）——
+  const period = 2000;
   let i = 0;
   el.textContent = msgs[i];
-  if (window.loadingMsgTimer) clearInterval(window.loadingMsgTimer);
-  window.loadingMsgTimer = setInterval(() => {
+
+  if (window.loadingMsgTimer) clearTimeout(window.loadingMsgTimer);
+  let t0 = performance.now();
+  let k = 1;
+
+  function tick() {
     i = (i + 1) % msgs.length;
     el.textContent = msgs[i];
-  }, 1300);
 
+    const target = t0 + k * period;
+    k += 1;
+    const delay = Math.max(0, target - performance.now());
+    window.loadingMsgTimer = setTimeout(tick, delay);
+  }
+  window.loadingMsgTimer = setTimeout(tick, period);
+
+  // —— 原本組問題並送出表單 ——
   let questionPrefix = "我抽到";
   let past = document.querySelector(".past > img");
   questionPrefix += `過去${past.alt}`;
