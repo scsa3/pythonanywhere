@@ -98,10 +98,10 @@ image_map = {
 
 
 def question_view(request):
-    name_list = request.POST.get('name')
-    if name_list:
+    name = request.POST.get('name')
+    if name:
         context = {
-            'name': name_list[0],
+            'name': name,
         }
     else:
         context = {}
