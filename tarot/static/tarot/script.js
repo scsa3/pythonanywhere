@@ -10,23 +10,30 @@ let selectedSlotId = null;
 let draggingCard = null;
 let dragOffsetX = 0;       // 保留（未使用也無妨）
 let dragOffsetY = 0;
-let dragStartClientX = 0;  // 新增：記錄指標起點
+let dragStartClientX = 0;  // 記錄指標起點
 let dragStartClientY = 0;
 
 // Undo/Reset history
-const historyStack = [];
+const historyStack = []; // entries: { card, fromId, toId }
 
 // Place a card into a specific slot id ("past" | "present" | "future")
 function placeCard(card, slotId, pushHistory = true) {
   if (!card || !slotId) return;
+
+  // 原本在哪一槽
   let fromId = null;
   if (card.classList.contains("on-spread")) {
     for (const sid of spreadIds) if (card.classList.contains(sid)) { fromId = sid; break; }
   }
+
+  // 設定新槽
   card.classList.remove("chosen","past","present","future");
   card.classList.add("on-spread", slotId);
+
+  // 紀錄歷史
   if (pushHistory) historyStack.push({ card, fromId, toId: slotId });
 
+  // 若有預選槽位就清掉
   if (selectedSlotId) {
     selectedSlotId = null;
     const spreads = document.getElementsByClassName("spread");
@@ -58,24 +65,24 @@ function resetAll() {
   refreshUIHints();
 }
 
-// click bottom card => place into next empty / preselected slot
+// Deck click: single-tap bottom card => auto place to next empty (or preselected) slot
 function onDeckClick(e) {
   const card = e.target.closest(".card");
   if (!card) return;
-  if (card.classList.contains("on-spread")) return;
+  if (card.classList.contains("on-spread")) return; // 已放上的忽略
   const targetSlot = selectedSlotId || getFirstEmptySpreadId();
   if (!targetSlot) { blink(); return; }
   placeCard(card, targetSlot);
 }
 
-// click placed card => toggle reversed
+// Clicking a placed card toggles upright/reversed
 function onPlacedCardClick(e) {
   const card = e.target.closest(".card.on-spread");
   if (!card) return;
   card.classList.toggle("reversed");
 }
 
-// drag-drop (Pointer Events)
+// Pointer Events drag-drop
 function onPointerDown(e) {
   const card = e.target.closest(".card");
   if (!card) return;
@@ -83,7 +90,7 @@ function onPointerDown(e) {
   card.setPointerCapture?.(e.pointerId);
   card.classList.add("dragging");
 
-  // 用指標起點，後續用 Δx/Δy，避免一按就跳
+  // 用指標起點，之後用 Δx/Δy 做位移；避免一按就跳
   dragStartClientX = e.clientX;
   dragStartClientY = e.clientY;
 }
@@ -92,7 +99,7 @@ function onPointerMove(e) {
   const dx = e.clientX - dragStartClientX;
   const dy = e.clientY - dragStartClientY;
 
-  // 保留 translateX(-50%)（原本置中），再疊加拖曳位移與視覺放大
+  // 保留 translateX(-50%) 基準，再加拖曳位移與微放大
   draggingCard.style.transform = `translateX(-50%) translate(${dx}px, ${dy}px) scale(1.04)`;
 }
 function onPointerUp(e) {
@@ -105,7 +112,7 @@ function onPointerUp(e) {
   draggingCard = null;
 }
 
-// slot hit-test
+// 命中測試：是否放在某個槽位上
 function hitSlot(x, y) {
   for (const id of ["past","present","future"]) {
     const el = document.getElementById(id);
@@ -116,11 +123,12 @@ function hitSlot(x, y) {
   return null;
 }
 
-// UI hints & submit enable
+// 更新 UI 提示、控制送出按鈕狀態
 function refreshUIHints() {
   const nextId = getFirstEmptySpreadId();
   const spreads = document.getElementsByClassName("spread");
   let filledAll = true;
+
   for (const s of spreads) {
     const hasCard = !!document.querySelector(`.card.on-spread.${s.id}`);
     s.classList.toggle("have-card", hasCard);
@@ -129,9 +137,10 @@ function refreshUIHints() {
     s.classList.toggle("breathe", shouldBreathe);
     if (!hasCard) filledAll = false;
   }
+
   const submit = document.getElementById("id_submit");
   if (submit) {
-    submit.disabled = !filledAll;        // 一直顯示，滿三張才啟用
+    submit.disabled = !filledAll;          // 一直顯示，滿三張才啟用
     submit.classList.remove("hidden","ready");
   }
 }
@@ -143,17 +152,21 @@ function main() {
   handleResize();
   window.addEventListener("resize", handleResize);
 
+  // 基本互動
   document.getElementById("cards-deck").addEventListener("click", onDeckClick);
   document.addEventListener("click", onPlacedCardClick);
 
+  // 拖曳
   document.addEventListener("pointerdown", onPointerDown);
   document.addEventListener("pointermove", onPointerMove);
   document.addEventListener("pointerup", onPointerUp);
   document.addEventListener("pointercancel", onPointerUp);
 
+  // 控制按鈕
   document.getElementById("btnUndo")?.addEventListener("click", undo);
   document.getElementById("btnReset")?.addEventListener("click", resetAll);
 
+  // 快捷鍵：Z 撤銷、Cmd/Ctrl+Backspace 重來（輸入框不觸發）
   document.addEventListener("keydown", (e) => {
     const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
     if (tag === "input" || tag === "textarea") return;
@@ -161,15 +174,28 @@ function main() {
     if ((e.key === "Backspace") && (e.metaKey || e.ctrlKey)) { e.preventDefault(); resetAll(); }
   });
 
-  refreshUIHints();
+  // 禁用 <img> 原生拖曳幽靈
   document.querySelectorAll('.front').forEach(img => img.draggable = false);
+
+  refreshUIHints();
 }
 
 /* ===== utilities / legacy touch helpers ===== */
-function createCards() { /* 略，同你現有 */ }
-function createPosition(card, i) { /* 略 */ }
-function createBack(card) { /* 略 */ }
-function createFront(card, i) { /* 略 */ }
+function createCards() { /* 若用不到可忽略 */ }
+function createPosition(card, i) { /* 若用不到可忽略 */ }
+function createBack(card) {
+  let back = document.createElement("div");
+  back.classList.add("back");
+  card.appendChild(back);
+}
+function createFront(card, i) {
+  let front = document.createElement("img");
+  const detail = details[i];
+  front.src = detail.src;
+  front.classList.add("front");
+  front.classList.add(detail.position);
+  card.appendChild(front);
+}
 function handleResize() {
   let [y, rad, r] = getYRad();
   rad = rad * 0.9;
@@ -186,11 +212,18 @@ function handleResize() {
     cards[i].style.top  = `${Math.round(realY)}px`;
   }
 }
-function getYRad() { const w = deck.offsetWidth, h = deck.offsetHeight; let r = (h/2)+(w**2/8/h); let y = Math.round(r*0.9); let rad = Math.asin(w/2/r)*2; return [y,rad,r]; }
-function clickCard(e) { /* 略 */ }
-function handleTouchMove(e) { /* 略 */ }
-function isTouchOnCard(rect,e){ /* 略 */ }
-function handleTouchEnd(e){ /* 略 */ }
+function getYRad() {
+  const w = deck.offsetWidth, h = deck.offsetHeight;
+  let r = (h / 2) + (w ** 2 / 8 / h);
+  let y = Math.round(r * 0.9);
+  let rad = Math.asin(w / 2 / r) * 2;
+  return [y, rad, r];
+}
+function clickCard(e) { /* 舊流程保留相容 */ }
+function handleTouchMove(e) { /* 舊流程保留相容 */ }
+function isTouchOnCard(rect, e) { /* 舊流程保留相容 */ }
+function handleTouchEnd(e) { /* 舊流程保留相容 */ }
+
 function clickButton(event) {
   document.getElementById("loadingOverlay").style.display = "flex";
   event.preventDefault();
@@ -205,8 +238,15 @@ function clickButton(event) {
   question.value = `${questionPrefix}${question.value}`;
   document.getElementById("id_form").submit();
 }
-function isTouchOnSpread(event) { let touchY = event.changedTouches[0].clientY; let spreadDeck = document.getElementById("spread-deck"); return touchY < spreadDeck.offsetHeight; }
-function getFirstEmptySpreadId() { for (let id of spreadIds) if (!getFirstElementByClass(id)) return id; }
+
+function isTouchOnSpread(event) {
+  let touchY = event.changedTouches[0].clientY;
+  let spreadDeck = document.getElementById("spread-deck");
+  return touchY < spreadDeck.offsetHeight;
+}
+function getFirstEmptySpreadId() {
+  for (let id of spreadIds) { if (!getFirstElementByClass(id)) return id; }
+}
 function getFirstElementByClass(name) { return document.querySelector(`.${name}`); }
 function clickSpread(spread) {
   const chosen = document.querySelector(".card.chosen:not(.on-spread)");
@@ -217,7 +257,15 @@ function clickSpread(spread) {
   refreshUIHints();
 }
 function cleanClass(elements, name) { for (let e of elements) e.classList.remove(name); }
-function blink() { let spreads = document.getElementsByClassName("spread"); for (let s of spreads) { if (s.classList.contains("have-card")) continue; s.classList.add("blink"); setTimeout(()=>s.classList.remove("blink"), 1000); } }
+function blink() {
+  let spreads = document.getElementsByClassName("spread");
+  for (let s of spreads) {
+    if (s.classList.contains("have-card")) continue;
+    s.classList.add("blink");
+    setTimeout(() => s.classList.remove("blink"), 1000);
+  }
+}
+
 class Detail { src; position; }
 function createCardDetails() {
   let srcs = [], results = [];
